@@ -1,12 +1,15 @@
 import fs from 'fs'
 import path from 'path'
+import { ethers } from 'ethers'
 import { SessionTypes } from '@walletconnect/types'
-import { CLIENT_EVENTS } from '@walletconnect/client'
-import WalletConnectClient from '@walletconnect/client'
+import WalletConnectClient, { CLIENT_EVENTS } from '@walletconnect/client'
 
 require('dotenv').config()
 
 async function main() {
+	const wallet = ethers.Wallet.createRandom()
+	const walletAddress = await wallet.getAddress()
+
 	const client = await WalletConnectClient.init({
 		controller: true,
 		apiKey: process.env.WC_KEY,
@@ -30,14 +33,27 @@ async function main() {
 			proposal,
 			response: {
 				state: {
-					accounts: ['eip155:1:0xe340b00b6b622c136ffa5cff130ec8edcddcb39d'],
+					accounts: [`eip155:1:${walletAddress}`],
 				},
 			},
 		})
 	}
 
-	function handleRpcRequest(method: string, params: any) {
-		return 'signatureHere'
+	async function handleRpcRequest(method: string, params: any) {
+		switch (method) {
+			case 'personal_sign':
+				return wallet.signMessage(params[0] as string)
+			case 'eth_signTypedData_v4':
+				const {
+					types: { EIP712Domain: _, ...types },
+					domain,
+					message,
+				} = JSON.parse(params[1])
+				return wallet._signTypedData(domain, types, message)
+
+			default:
+				throw new Error('Not implemented.')
+		}
 	}
 
 	client.on(CLIENT_EVENTS.session.proposal, async (proposal: SessionTypes.Proposal) => {
@@ -46,7 +62,7 @@ async function main() {
 		const { metadata } = proposer
 		let approved: boolean = true
 
-		return handleSessionUserApproval(approved, proposal) // described in the step 4
+		return handleSessionUserApproval(approved, proposal)
 	})
 
 	client.on(CLIENT_EVENTS.session.created, async (session: SessionTypes.Created) => {
@@ -81,7 +97,7 @@ async function main() {
 			response: {
 				id: requestId,
 				jsonrpc: '2.0',
-				result: handleRpcRequest(rpcMethod, params),
+				result: await handleRpcRequest(rpcMethod, params),
 			},
 		})
 	})

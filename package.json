@@ -1,18 +1,26 @@
 {
+	"main": "src/main.ts",
 	"dependencies": {
 		"@json-rpc-tools/utils": "^1.7.6",
 		"@walletconnect/client": "^2.0.0-beta.20",
-		"dotenv": "^10.0.0"
+		"@walletconnect/ethereum-provider": "^2.0.0-beta.20",
+		"dotenv": "^10.0.0",
+		"ethers": "^5.5.1"
 	},
 	"devDependencies": {
 		"@types/node": "^16.11.6",
+		"electron": "9.4.2",
+		"electron-log": "^4.4.1",
 		"prettier": "^2.4.1",
 		"ts-node": "^10.4.0",
 		"tslib": "^2.3.1",
 		"typescript": "^4.4.4"
 	},
 	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
 		"dev": "ts-node src/index.ts",
-		"client": "ts-node src/client.ts"
+		"client": "ts-node src/client.ts",
+		"start": "npm run build && electron ./dist/main.js"
 	}
 }
